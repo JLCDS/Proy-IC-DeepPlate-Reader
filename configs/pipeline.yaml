@@ -1,0 +1,27 @@
+detection:
+  model_path: models/detection/best.pt
+  confidence: 0.45
+  iou_threshold: 0.5
+  input_size: 640
+  device: "cuda"          # "cpu" or "cuda"
+
+enhancement:
+  enabled: true
+  denoise: true
+  denoise_strength: 10    # cv2 fastNlMeans h param
+  upscale_factor: 2       # 1 = no upscale
+  contrast_clip_limit: 2.0
+
+ocr:
+  engine: "easyocr"       # "easyocr" or "paddleocr"
+  languages: ["en"]
+  min_confidence: 0.6
+  batch_size: 8
+
+pipeline:
+  source: "image"         # "image", "video", or "camera"
+  camera_id: 0
+  frame_skip: 2           # process every N frames in video/camera mode
+  output_dir: "outputs"
+  save_crops: false
+  show_preview: true

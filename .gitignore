@@ -1,0 +1,54 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+*.whl
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+
+# Data (use DVC or Git LFS for large files)
+data/raw/
+data/processed/
+!data/samples/
+
+# Model weights
+models/**/*.pt
+models/**/*.pth
+models/**/*.onnx
+models/**/*.weights
+
+# Notebooks checkpoints
+.ipynb_checkpoints/
+
+# IDE
+.vscode/settings.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+
+# Coverage
+.coverage
+htmlcov/
+.pytest_cache/
