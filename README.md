@@ -54,6 +54,19 @@ Proy-IC-DeepPlate-Reader/
     └── unit/                # Unit tests for each module
 ```
 
+## Dataset
+
+Source: [Proyecto Placas v1 — Roboflow](https://universe.roboflow.com/juan-felipe-orozco-cortes/proyecto-placas) (CC BY 4.0)
+
+| Split | Images |
+|-------|--------|
+| train | 792    |
+| val   | 75     |
+| test  | 38     |
+
+Raw format: **RetinaNet CSV** (`_annotations.csv` per split, no header).  
+After conversion: **YOLO** format in `data/raw/plates/`.
+
 ## Setup
 
 ```bash
@@ -83,9 +96,15 @@ python scripts/infer.py --camera 0
 python scripts/infer.py --video path/to/video.mp4 --output outputs/result.mp4
 ```
 
+### Prepare dataset (run once)
+```bash
+# Converts RetinaNet CSV → YOLO format into data/raw/plates/
+python scripts/convert_to_yolo.py
+```
+
 ### Train detection model
 ```bash
-python scripts/train.py --data configs/data.yaml --epochs 50 --device 0
+python scripts/train.py --data data/raw/plates/data.yaml --epochs 50 --device 0
 ```
 
 ### Evaluate accuracy
