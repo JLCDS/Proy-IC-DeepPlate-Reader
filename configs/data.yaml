@@ -1,0 +1,15 @@
+# YOLO training data config
+# Place your dataset images and labels following YOLO folder structure:
+#   data/raw/plates/images/train/
+#   data/raw/plates/images/val/
+#   data/raw/plates/labels/train/
+#   data/raw/plates/labels/val/
+
+path: data/raw/plates
+train: images/train
+val: images/val
+test: images/test   # optional
+
+nc: 1
+names:
+  - license_plate

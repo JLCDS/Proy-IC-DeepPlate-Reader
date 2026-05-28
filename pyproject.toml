@@ -1,0 +1,53 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "deepplate"
+version = "0.1.0"
+description = "LPR system for degraded images using Deep Learning"
+requires-python = ">=3.10"
+dependencies = [
+    "torch>=2.2.0",
+    "torchvision>=0.17.0",
+    "ultralytics>=8.2.0",
+    "opencv-python>=4.9.0",
+    "easyocr>=1.7.1",
+    "albumentations>=1.4.0",
+    "pydantic>=2.7.0",
+    "pydantic-settings>=2.3.0",
+    "loguru>=0.7.2",
+    "rich>=13.7.0",
+    "numpy>=1.26.0",
+    "Pillow>=10.3.0",
+    "PyYAML>=6.0.1",
+    "tqdm>=4.66.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.2.0",
+    "pytest-cov>=5.0.0",
+    "ruff>=0.4.0",
+    "pre-commit>=3.7.0",
+]
+api = [
+    "fastapi>=0.111.0",
+    "uvicorn[standard]>=0.30.0",
+    "python-multipart>=0.0.9",
+]
+
+[project.scripts]
+deepplate-infer = "scripts.infer:main"
+deepplate-train = "scripts.train:main"
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "N"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "--cov=src/deepplate --cov-report=term-missing"
