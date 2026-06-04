@@ -72,7 +72,15 @@ Proy-IC-DeepPlate-Reader/
 
 ---
 
-## Instalacion
+## Ejecucion rapida (Windows)
+
+Doble clic en **`launch.bat`** — instala todo, entrena el modelo y abre la app automaticamente.
+
+> **Requisito:** tener [Python 3.10+](https://www.python.org/downloads/) instalado con la opcion **"Add Python to PATH"** marcada.
+
+---
+
+## Instalacion manual
 
 ```bash
 # 1. Clonar el repositorio
@@ -80,7 +88,7 @@ git clone <url-del-repo>
 cd Proy-IC-DeepPlate-Reader
 
 # 2. Instalar dependencias
-pip install -e .
+pip install -r requirements.txt
 ```
 
 > **Requiere Python >= 3.10**
@@ -92,16 +100,11 @@ pip install -e .
 ### 1. Entrenar el clasificador (obligatorio la primera vez)
 
 ```bash
-python scripts/train.py
+python scripts/train.py --samples 500
 ```
 
 Genera `models/ocr/ocr_svm.pkl` y `models/ocr/ocr_le.pkl`.  
-Duracion: ~20 segundos en CPU. Accuracy esperada: ~96-99%.
-
-```bash
-# Mas muestras = mayor robustez (default: 300)
-python scripts/train.py --samples 400
-```
+Duracion: ~30 segundos en CPU. Accuracy esperada: ~97%.
 
 ### 2. Lanzar la interfaz web
 
