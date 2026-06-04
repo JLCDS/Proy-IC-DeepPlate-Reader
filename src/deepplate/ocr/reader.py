@@ -11,7 +11,7 @@ from ..utils import get_logger
 
 logger = get_logger("ocr")
 
-_PLATE_RE = re.compile(r"[A-Z]{3}\d{3}", re.IGNORECASE)
+_PLATE_RE = re.compile(r"[A-Z]{3}\d{3}|[A-Z]{3}\d{2}[A-Z]", re.IGNORECASE)
 TARGET_SIZE = (32, 32)
 
 
