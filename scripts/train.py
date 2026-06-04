@@ -1,40 +1,33 @@
-"""Fine-tune / train a YOLOv8 model for plate detection."""
+"""Train the HOG + SVM character classifier from synthetic data."""
 from __future__ import annotations
 import argparse
+import sys
 from pathlib import Path
-from ultralytics import YOLO
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+
+from deepplate.ocr.trainer import train_svm
 
 
 def parse_args() -> argparse.Namespace:
-    p = argparse.ArgumentParser(description="Train plate detection model")
-    p.add_argument("--data", required=True, help="Path to data.yaml (YOLO format)")
-    p.add_argument("--weights", default="yolov8n.pt", help="Base weights (n/s/m/l/x)")
-    p.add_argument("--epochs", type=int, default=50)
-    p.add_argument("--imgsz", type=int, default=640)
-    p.add_argument("--batch", type=int, default=8,
-                   help="Batch size — keep <=8 for RTX 3050 4GB VRAM")
-    p.add_argument("--device", default="0", help="CUDA device or 'cpu'")
-    p.add_argument("--name", default="plate_detector", help="Run name")
+    p = argparse.ArgumentParser(description="Train OCR model (HOG + SVM)")
+    p.add_argument(
+        "--output-dir", default="models/ocr",
+        help="Directory to save ocr_svm.pkl and ocr_le.pkl (default: models/ocr)",
+    )
+    p.add_argument(
+        "--samples", type=int, default=300,
+        help="Synthetic samples per character class (default: 300)",
+    )
     return p.parse_args()
 
 
 def main() -> None:
     args = parse_args()
-    model = YOLO(args.weights)
-    model.train(
-        data=args.data,
-        epochs=args.epochs,
-        imgsz=args.imgsz,
-        batch=args.batch,
-        device=args.device,
-        project="models/detection",
-        name=args.name,
-        exist_ok=True,
-        workers=4,       # safe for 12-thread CPU
-        cache=False,     # avoids RAM spikes on 11 GB systems
-        patience=15,     # early stopping: saves time if already converged
-    )
-    print(f"Training complete. Weights saved to models/detection/{args.name}/weights/best.pt")
+    train_svm(output_dir=args.output_dir, samples_per_class=args.samples)
+    print(f"\nDone. Models saved to: {args.output_dir}/")
+    print("  ocr_svm.pkl  — SVM classifier")
+    print("  ocr_le.pkl   — LabelEncoder (index → character)")
 
 
 if __name__ == "__main__":

@@ -1,133 +1,208 @@
 # DeepPlate-Reader
 
-Deep Learning-based License Plate Recognition (LPR) system optimized for degraded images: blur, low resolution, poor lighting, and partial occlusion.
+Sistema de Reconocimiento Automático de Placas Vehiculares Colombianas (LPR) construido enteramente desde cero usando visión por computador clásica y aprendizaje automático, sin modelos preentrenados.
 
-## Pipeline Overview
+**Curso:** Inteligencia Computacional — Semestre 2026-I  
+**Formato de placa objetivo:** `ABC123` (3 letras + 3 dígitos, Colombia)
+
+---
+
+## Pipeline
 
 ```
-Input (image / video / camera)
-        │
-        ▼
-┌─────────────────┐
-│  Plate Detector  │  ← YOLOv8 fine-tuned on plate datasets
-│  (YOLOv8)       │
-└────────┬────────┘
-         │ bounding boxes
-         ▼
-┌─────────────────┐
-│  Image Enhancer  │  ← Upscaling · Denoising · CLAHE · Sharpening
-└────────┬────────┘
-         │ clean crop
-         ▼
-┌─────────────────┐
-│   OCR Engine    │  ← EasyOCR / PaddleOCR + regex post-processing
-└────────┬────────┘
-         │ plate text + confidence
-         ▼
-     Output / API
+Imagen de entrada
+      │
+      ▼
+┌─────────────────────────────────────┐
+│  Detección de placa                 │  Filtro bilateral → Canny → Contornos → NMS
+└──────────────────┬──────────────────┘
+                   │ bbox (x1,y1,x2,y2)
+                   ▼
+┌─────────────────────────────────────┐
+│  Mejora de imagen                   │  Upscale x2 · CLAHE · Denoise · Sharpening
+└──────────────────┬──────────────────┘
+                   │ crop mejorado
+                   ▼
+┌─────────────────────────────────────┐
+│  Segmentacion de caracteres         │  Otsu binarize → Componentes conectados
+└──────────────────┬──────────────────┘
+                   │ lista de crops por caracter
+                   ▼
+┌─────────────────────────────────────┐
+│  Clasificacion HOG + SVM            │  324 features · RBF kernel · 36 clases
+└──────────────────┬──────────────────┘
+                   │ texto + confianza
+                   ▼
+              Resultado
 ```
 
-## Project Structure
+---
+
+## Estructura del proyecto
 
 ```
 Proy-IC-DeepPlate-Reader/
-├── configs/                 # YAML config for pipeline and training
-│   ├── pipeline.yaml
-│   └── data.yaml
+├── app.py                     # Interfaz web Streamlit (punto de entrada)
+├── configs/
+│   └── pipeline.yaml          # Parametros de deteccion, mejora y OCR
 ├── data/
-│   ├── raw/                 # Raw datasets (gitignored)
-│   ├── processed/           # Processed annotations
-│   └── samples/             # Sample images for quick tests
-├── models/                  # Saved weights (gitignored)
-├── notebooks/               # Exploration and analysis
+│   └── dataset/               # Dataset anotado (RetinaNet CSV)
+├── models/                    # Modelos entrenados (generados localmente, no en git)
+│   └── ocr/
+│       ├── ocr_svm.pkl        # <- generado por scripts/train.py
+│       └── ocr_le.pkl         # <- generado por scripts/train.py
+├── notebooks/                 # Analisis exploratorio del dataset
+├── outputs/                   # Resultados generados (no en git)
 ├── scripts/
-│   ├── infer.py             # Run inference on image/video/camera
-│   ├── train.py             # Fine-tune detection model
-│   └── evaluate.py          # Measure OCR accuracy
+│   ├── train.py               # Entrena el SVM desde cero (datos sinteticos)
+│   ├── infer.py               # Inferencia por linea de comandos
+│   ├── evaluate.py            # Metricas sobre un CSV etiquetado
+│   ├── generar_figuras.py     # Genera figuras para el informe
+│   └── diagnostico.py        # Diagnostico paso a paso del pipeline
 ├── src/deepplate/
-│   ├── detection/           # PlateDetector (YOLOv8 wrapper)
-│   ├── enhancement/         # ImageEnhancer (classical CV)
-│   ├── ocr/                 # PlateOCR (EasyOCR wrapper + postprocess)
-│   ├── pipeline/            # LPRPipeline (orchestrates all stages)
-│   └── utils/               # Logger, visualization helpers
+│   ├── detection/             # PlateDetector (Canny + contornos)
+│   ├── enhancement/           # ImageEnhancer (CLAHE + denoise)
+│   ├── segmentation/          # CharacterSegmenter (Otsu + CC)
+│   ├── ocr/                   # PlateOCR (HOG + SVM) + trainer
+│   ├── pipeline/              # LPRPipeline (orquesta todas las etapas)
+│   └── utils/                 # Logger, visualizacion
 └── tests/
-    └── unit/                # Unit tests for each module
+    └── unit/
 ```
+
+---
+
+## Instalacion
+
+```bash
+# 1. Clonar el repositorio
+git clone <url-del-repo>
+cd Proy-IC-DeepPlate-Reader
+
+# 2. Instalar dependencias
+pip install -e .
+```
+
+> **Requiere Python >= 3.10**
+
+---
+
+## Uso
+
+### 1. Entrenar el clasificador (obligatorio la primera vez)
+
+```bash
+python scripts/train.py
+```
+
+Genera `models/ocr/ocr_svm.pkl` y `models/ocr/ocr_le.pkl`.  
+Duracion: ~20 segundos en CPU. Accuracy esperada: ~96-99%.
+
+```bash
+# Mas muestras = mayor robustez (default: 300)
+python scripts/train.py --samples 400
+```
+
+### 2. Lanzar la interfaz web
+
+```bash
+streamlit run app.py
+```
+
+Abre `http://localhost:8501`. La app tiene 4 secciones:
+
+| Seccion | Descripcion |
+|---------|-------------|
+| Demo en vivo | Sube una imagen y ve el resultado del pipeline |
+| Visualizaciones de datos | Scatter de dimensiones del dataset + grid de placas segmentadas |
+| Metricas del clasificador | Matriz de confusion + F1-score por clase |
+| Acerca del sistema | Descripcion del pipeline |
+
+### 3. Inferencia por linea de comandos
+
+```bash
+# Imagen unica
+python scripts/infer.py --image ruta/imagen.jpg
+
+# Carpeta de imagenes
+python scripts/infer.py --image data/dataset/.../test/
+
+# Camara en vivo
+python scripts/infer.py --camera 0
+
+# Video
+python scripts/infer.py --video ruta/video.mp4 --output outputs/resultado.mp4
+```
+
+### 4. Diagnostico del pipeline (paso a paso)
+
+```bash
+python scripts/diagnostico.py                         # imagen por defecto
+python scripts/diagnostico.py --image mi_placa.jpg   # imagen propia
+python scripts/diagnostico.py --skip-train           # si ya entrenaste
+```
+
+Guarda imagenes intermedias en `outputs/diagnostico/` para inspeccionar cada etapa.
+
+### 5. Generar figuras del informe
+
+```bash
+python scripts/generar_figuras.py
+# Guarda en outputs/figuras_informe/:
+#   figura1_pipeline.png
+#   figura2_confusion_matrix.png
+```
+
+---
 
 ## Dataset
 
-Source: [Proyecto Placas v1 — Roboflow](https://universe.roboflow.com/juan-felipe-orozco-cortes/proyecto-placas) (CC BY 4.0)
+**Fuente:** Proyecto Placas v1 — Roboflow (CC BY 4.0)  
+**Formato:** RetinaNet CSV (`_annotations.csv` por split)
 
-| Split | Images |
-|-------|--------|
-| train | 792    |
-| val   | 75     |
-| test  | 38     |
+| Split      | Imagenes | Anotaciones |
+|------------|----------|-------------|
+| train      | 40       | 40          |
+| validation | 8        | 8           |
+| test       | 21       | 21          |
 
-Raw format: **RetinaNet CSV** (`_annotations.csv` per split, no header).  
-After conversion: **YOLO** format in `data/raw/plates/`.
+Imagenes tomadas con camara de telefono (Redmi Note 8) en condiciones reales de calle en Colombia.
 
-## Setup
+---
 
-```bash
-# Create virtual environment
-python -m venv .venv
-.venv\Scripts\activate          # Windows
-# source .venv/bin/activate     # Linux/Mac
+## Tecnologias
 
-# Install project
-pip install -e ".[dev]"
+| Componente              | Libreria              |
+|-------------------------|-----------------------|
+| Deteccion de placa      | `opencv-python`       |
+| Segmentacion caracteres | `opencv-python`       |
+| Extraccion HOG          | `scikit-image`        |
+| Clasificador SVM        | `scikit-learn`        |
+| Persistencia del modelo | `joblib`              |
+| Generacion datos train  | `Pillow` (PIL)        |
+| Interfaz web            | `streamlit`           |
+| Graficas interactivas   | `plotly`, `matplotlib`|
+
+---
+
+## Configuracion
+
+Edita `configs/pipeline.yaml` para ajustar los parametros:
+
+```yaml
+detection:
+  min_aspect: 1.1        # ratio minimo ancho/alto de la placa
+  canny_low: 50
+  canny_high: 200
+
+enhancement:
+  upscale_factor: 2
+  contrast_clip_limit: 2.0
+
+segmentation:
+  min_char_height_ratio: 0.25
+
+ocr:
+  model_path: models/ocr/ocr_svm.pkl
+  min_confidence: 0.25
 ```
-
-## Usage
-
-### Inference on images
-```bash
-python scripts/infer.py --image data/samples/  --config configs/pipeline.yaml
-```
-
-### Live camera
-```bash
-python scripts/infer.py --camera 0
-```
-
-### Video file
-```bash
-python scripts/infer.py --video path/to/video.mp4 --output outputs/result.mp4
-```
-
-### Prepare dataset (run once)
-```bash
-# Converts RetinaNet CSV → YOLO format into data/raw/plates/
-python scripts/convert_to_yolo.py
-```
-
-### Train detection model
-```bash
-python scripts/train.py --data data/raw/plates/data.yaml --epochs 50 --device 0
-```
-
-### Evaluate accuracy
-```bash
-python scripts/evaluate.py --labels data/processed/labels.csv
-```
-
-### Run tests
-```bash
-pytest
-```
-
-## Configuration
-
-Edit `configs/pipeline.yaml` to adjust detection confidence, enhancement parameters, OCR engine, and input source.
-
-## Tech Stack
-
-| Component | Library |
-|-----------|---------|
-| Plate Detection | `ultralytics` YOLOv8 |
-| Image Enhancement | `opencv-python` (CLAHE, denoising, sharpening) |
-| OCR | `easyocr` |
-| Config | `pydantic-settings` + YAML |
-| Logging | `loguru` |
-| Testing | `pytest` + `pytest-cov` |
