@@ -1,7 +1,3 @@
-"""
-DeepPlate-Reader — Interfaz web Streamlit
-Corre con:  streamlit run app.py
-"""
 from __future__ import annotations
 import sys
 from pathlib import Path

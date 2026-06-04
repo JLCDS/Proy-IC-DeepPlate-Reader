@@ -16,7 +16,6 @@ class EnhancerConfig:
 
 
 class ImageEnhancer:
-    """Classical CV enhancement pipeline for degraded plate crops."""
 
     def __init__(self, config: EnhancerConfig | None = None) -> None:
         self.cfg = config or EnhancerConfig()
@@ -28,8 +27,6 @@ class ImageEnhancer:
         img = self._equalize_contrast(img)
         img = self._sharpen(img)
         return img
-
-    # --- private steps ---
 
     def _upscale(self, img: np.ndarray) -> np.ndarray:
         if self.cfg.upscale_factor <= 1:

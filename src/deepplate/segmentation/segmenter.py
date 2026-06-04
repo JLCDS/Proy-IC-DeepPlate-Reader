@@ -9,12 +9,6 @@ PLATE_STD_HEIGHT = 80  # pixels — normalize plate to this height before segmen
 
 
 class CharacterSegmenter:
-    """
-    Extracts individual character crops from a plate image.
-
-    Pipeline: grayscale → resize → Otsu binarize → morphological clean
-    → contour filtering by height ratio and aspect ratio → sort left to right.
-    """
 
     def __init__(
         self,
@@ -30,11 +24,9 @@ class CharacterSegmenter:
         self.max_asp = max_char_aspect
         self.expected = expected_chars
 
-    # Fraction of each side to trim before segmenting (removes plate border)
     BORDER_TRIM = 0.06
 
     def segment(self, plate_crop: np.ndarray) -> list[np.ndarray]:
-        """Return grayscale character images sorted left to right."""
         gray = self._to_gray(plate_crop)
         gray = self._resize_to_std(gray)
         gray = self._trim_border(gray)
@@ -46,7 +38,6 @@ class CharacterSegmenter:
         candidates: list[tuple[int, np.ndarray]] = []
         for cnt in contours:
             x, y, cw, ch = cv2.boundingRect(cnt)
-            # Skip contours touching the image edge (border fragments)
             if x <= 1 or y <= 1 or x + cw >= plate_w - 1 or y + ch >= plate_h - 1:
                 continue
             h_ratio = ch / plate_h
@@ -57,7 +48,6 @@ class CharacterSegmenter:
         candidates.sort(key=lambda c: c[0])
         chars = [c[1] for c in candidates]
 
-        # Fallback: vertical projection if contour approach yields too few chars
         if len(chars) < self.expected // 2:
             chars = self._projection_segment(gray, binary)
 
@@ -65,9 +55,7 @@ class CharacterSegmenter:
         return chars
 
     def _projection_segment(self, gray: np.ndarray, binary: np.ndarray) -> list[np.ndarray]:
-        """Vertical projection profile fallback: find column valleys to split chars."""
         col_sums = binary.sum(axis=0).astype(float)
-        # Smooth the projection
         kernel = np.ones(3) / 3
         col_sums = np.convolve(col_sums, kernel, mode="same")
 
@@ -81,7 +69,7 @@ class CharacterSegmenter:
                 start = i
             elif in_char and v <= threshold:
                 in_char = False
-                if i - start >= 4:  # skip tiny segments
+                if i - start >= 4:
                     segments.append((start, i))
         if in_char:
             segments.append((start, len(col_sums)))
@@ -93,8 +81,6 @@ class CharacterSegmenter:
             if w > 0 and h > 0:
                 chars.append(col)
         return chars
-
-    # ------------------------------------------------------------------ helpers
 
     @staticmethod
     def _to_gray(img: np.ndarray) -> np.ndarray:
@@ -109,7 +95,6 @@ class CharacterSegmenter:
         return cv2.resize(gray, (new_w, PLATE_STD_HEIGHT), interpolation=cv2.INTER_AREA)
 
     def _trim_border(self, gray: np.ndarray) -> np.ndarray:
-        """Remove outer border pixels that can fuse into character blobs."""
         h, w = gray.shape
         t = max(1, int(h * self.BORDER_TRIM))
         l = max(1, int(w * self.BORDER_TRIM))
@@ -117,15 +102,10 @@ class CharacterSegmenter:
 
     @staticmethod
     def _binarize(gray: np.ndarray) -> np.ndarray:
-        """Otsu binarization. Characters become white (255), background black (0)."""
         blur = cv2.GaussianBlur(gray, (3, 3), 0)
         _, binary = cv2.threshold(blur, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
-
-        # If the result is mostly white, the plate has dark background — flip back
         if np.mean(binary) > 200:
             binary = cv2.bitwise_not(binary)
-
-        # Remove small noise with morphological opening
         kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (2, 2))
         binary = cv2.morphologyEx(binary, cv2.MORPH_OPEN, kernel)
         return binary

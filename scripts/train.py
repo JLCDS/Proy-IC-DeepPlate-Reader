@@ -1,4 +1,3 @@
-"""Train the HOG + SVM character classifier from synthetic data."""
 from __future__ import annotations
 import argparse
 import sys

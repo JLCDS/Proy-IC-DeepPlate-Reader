@@ -7,7 +7,6 @@ logger = get_logger("detection")
 
 
 class PlateDetector:
-    """Classical CV plate localization: bilateral filter → Canny → contour filtering."""
 
     def __init__(
         self,
@@ -29,7 +28,6 @@ class PlateDetector:
         logger.info("PlateDetector initialized (classical CV mode)")
 
     def detect(self, image: np.ndarray) -> list[tuple[int, int, int, int]]:
-        """Return list of (x1, y1, x2, y2) bounding boxes for detected plates."""
         h, w = image.shape[:2]
         total_area = h * w
 
@@ -37,7 +35,6 @@ class PlateDetector:
         filtered = cv2.bilateralFilter(gray, 11, 17, 17)
         edges = cv2.Canny(filtered, self.canny_low, self.canny_high)
 
-        # Dilate edges to close small gaps in plate border
         kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
         edges = cv2.dilate(edges, kernel, iterations=2)
 
@@ -56,7 +53,6 @@ class PlateDetector:
         return self._nms(candidates)
 
     def crop_plates(self, image: np.ndarray) -> list[np.ndarray]:
-        """Return cropped plate regions with small padding."""
         h, w = image.shape[:2]
         crops = []
         for x1, y1, x2, y2 in self.detect(image):
@@ -70,7 +66,6 @@ class PlateDetector:
     def _nms(
         boxes: list[tuple[int, int, int, int]], iou_threshold: float = 0.3
     ) -> list[tuple[int, int, int, int]]:
-        """Simple non-maximum suppression to remove overlapping boxes."""
         if not boxes:
             return []
         boxes_arr = np.array(boxes, dtype=float)

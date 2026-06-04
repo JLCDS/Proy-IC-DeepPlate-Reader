@@ -11,40 +11,25 @@ from ..utils import get_logger
 
 logger = get_logger("ocr")
 
-# Colombian car plate: ABC123 (3 letters + 3 digits)
 _PLATE_RE = re.compile(r"[A-Z]{3}\d{3}", re.IGNORECASE)
 TARGET_SIZE = (32, 32)
 
 
 def _prepare_char(img: np.ndarray) -> np.ndarray:
-    """
-    Binarize → pad to square preserving aspect ratio → resize to TARGET_SIZE.
-
-    Binarizing first removes plate-color information (yellow/white background) and
-    eliminates artificial gradients that appear when gray-scale background values
-    differ from the 255 padding, which would otherwise confuse HOG features.
-    """
-    # 1. Binarize: character pixels → 0 (black), background → 255 (white)
     blur = cv2.GaussianBlur(img, (3, 3), 0)
     _, binary = cv2.threshold(blur, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-    # After Otsu, background is usually brighter; invert so character is dark (0)
     if binary.mean() > 128:
         binary = 255 - binary
-
-    # 2. Pad to square so aspect ratio is preserved (no stretching distortion)
     h, w = binary.shape
     side = max(h, w)
     canvas = np.full((side, side), 255, dtype=np.uint8)
     y_off = (side - h) // 2
     x_off = (side - w) // 2
     canvas[y_off: y_off + h, x_off: x_off + w] = binary
-
-    # 3. Resize to fixed size for HOG
     return cv2.resize(canvas, TARGET_SIZE, interpolation=cv2.INTER_AREA)
 
 
 class PlateOCR:
-    """HOG feature extraction + pre-trained SVM classifier for alphanumeric characters."""
 
     def __init__(
         self,
@@ -67,17 +52,12 @@ class PlateOCR:
         logger.info(f"OCR model loaded from {model_path}")
 
     def read(self, char_crops: list[np.ndarray]) -> tuple[str, float]:
-        """
-        Classify each character crop and assemble the plate string.
-
-        Returns (plate_text, mean_confidence). Empty string if recognition fails.
-        """
         if len(char_crops) < self.min_chars:
             logger.debug(f"Too few chars ({len(char_crops)} < {self.min_chars}), skipping")
             return "", 0.0
 
         features = np.array([self._extract_hog(c) for c in char_crops], dtype=np.float32)
-        probs = self.clf.predict_proba(features)   # shape (n_chars, n_classes)
+        probs = self.clf.predict_proba(features)
         label_ids = probs.argmax(axis=1)
         chars = self.le.inverse_transform(label_ids)
         confidences = probs.max(axis=1)

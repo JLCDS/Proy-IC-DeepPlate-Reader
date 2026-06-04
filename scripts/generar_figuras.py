@@ -1,4 +1,3 @@
-"""Genera Figura 1 (pipeline) y Figura 2 (confusion matrix) para el informe."""
 import sys
 from pathlib import Path
 

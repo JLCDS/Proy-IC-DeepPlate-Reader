@@ -1,11 +1,3 @@
-"""
-Train a HOG + SVM character classifier from synthetic data.
-
-Data is generated on-the-fly using PIL (system fonts + augmentation),
-so no external dataset is required. Produces two files:
-  - ocr_svm.pkl   : trained SVC with probability=True
-  - ocr_le.pkl    : fitted LabelEncoder (maps class index -> char)
-"""
 from __future__ import annotations
 import random
 from pathlib import Path
@@ -69,7 +61,6 @@ def _render_char(char: str, font, img_size: int = 40) -> np.ndarray:
 
 
 def _augment(base: np.ndarray, n: int) -> list[np.ndarray]:
-    """Generate n augmented variants of a character image."""
     results = [base]
     for _ in range(n):
         img = base.copy().astype(np.float32)
@@ -115,7 +106,6 @@ def _extract_hog(img: np.ndarray) -> np.ndarray:
 
 
 def generate_dataset(samples_per_class: int = 300) -> tuple[np.ndarray, list[str]]:
-    """Render synthetic character images and extract HOG features."""
     fonts = _load_fonts()
     X: list[np.ndarray] = []
     y: list[str] = []
@@ -136,7 +126,6 @@ def generate_dataset(samples_per_class: int = 300) -> tuple[np.ndarray, list[str
 
 
 def train_svm(output_dir: str | Path, samples_per_class: int = 300) -> None:
-    """Generate synthetic data, train SVM, and save model + label encoder."""
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 

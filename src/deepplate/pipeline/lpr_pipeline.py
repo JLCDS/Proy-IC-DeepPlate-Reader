@@ -14,7 +14,6 @@ logger = get_logger("pipeline")
 
 
 class LPRPipeline:
-    """End-to-end License Plate Recognition pipeline (classical CV + HOG + SVM)."""
 
     def __init__(self, config: dict) -> None:
         det = config.get("detection", {})

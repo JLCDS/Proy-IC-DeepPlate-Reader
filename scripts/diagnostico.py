@@ -1,17 +1,3 @@
-"""
-Diagnóstico rápido del pipeline completo.
-
-Prueba cada etapa por separado y guarda imágenes en outputs/diagnostico/:
-  1. Entrenamiento rápido del SVM (50 muestras/clase ~30s)
-  2. Detector de placa sobre imágenes del dataset
-  3. Segmentador de caracteres sobre los recortes detectados
-  4. OCR completo (detección ->segmentación ->clasificación)
-
-Uso:
-    python scripts/diagnostico.py
-    python scripts/diagnostico.py --image ruta/imagen.jpg
-    python scripts/diagnostico.py --skip-train   # si ya tienes modelos/ocr/ entrenado
-"""
 from __future__ import annotations
 import argparse
 import sys
@@ -169,7 +155,6 @@ def test_ocr(image_path: Path) -> None:
 # Utilidades
 # ──────────────────────────────────────────────
 def _make_char_strip(chars: list[np.ndarray], target_h: int = 64) -> np.ndarray:
-    """Apila caracteres horizontalmente en una sola imagen para visualizar."""
     if not chars:
         return np.ones((target_h, target_h), dtype=np.uint8) * 200
     strips = []
