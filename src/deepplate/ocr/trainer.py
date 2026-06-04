@@ -19,16 +19,20 @@ logger = get_logger("ocr.trainer")
 CHARS = list("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
 TARGET_SIZE = (32, 32)
 
-# Windows font locations; fallback to PIL default if none found
+# Fuentes priorizadas por similitud con la fuente oficial de placas colombianas
+# (bold, condensada, sans-serif — similar a Highway Gothic)
 _FONT_CANDIDATES = [
+    # Alta prioridad — más similares a la fuente de placas
+    "C:/Windows/Fonts/AGENCYB.TTF",   # Agency FB Bold: mejor aproximacion
+    "C:/Windows/Fonts/impact.ttf",    # Impact: bold condensada, muy similar
+    "C:/Windows/Fonts/GOTHICB.TTF",   # Century Gothic Bold
+    # Secundarias
+    "C:/Windows/Fonts/arialbd.ttf",   # Arial Bold
     "C:/Windows/Fonts/arial.ttf",
-    "C:/Windows/Fonts/arialbd.ttf",
-    "C:/Windows/Fonts/cour.ttf",
-    "C:/Windows/Fonts/courbd.ttf",
-    "C:/Windows/Fonts/calibri.ttf",
-    "C:/Windows/Fonts/verdana.ttf",
-    "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
-    "/usr/share/fonts/truetype/liberation/LiberationMono-Regular.ttf",
+    "C:/Windows/Fonts/verdanab.ttf",
+    # Linux fallback
+    "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+    "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
 ]
 
 
@@ -50,13 +54,15 @@ def _load_fonts(sizes: list[int] = (24, 28, 32)) -> list:
 
 
 def _render_char(char: str, font, img_size: int = 40) -> np.ndarray:
-    img = Image.new("L", (img_size, img_size), color=255)
+    # Alterna entre fondo blanco (placas particulares) y amarillo (servicio/motos)
+    bg = 255 if random.random() > 0.4 else random.randint(180, 220)
+    img = Image.new("L", (img_size, img_size), color=bg)
     draw = ImageDraw.Draw(img)
     bbox = draw.textbbox((0, 0), char, font=font)
     tw, th = bbox[2] - bbox[0], bbox[3] - bbox[1]
     x = (img_size - tw) // 2 - bbox[0]
     y = (img_size - th) // 2 - bbox[1]
-    draw.text((x, y), char, fill=0, font=font)
+    draw.text((x, y), char, fill=random.randint(0, 30), font=font)
     return np.array(img)
 
 

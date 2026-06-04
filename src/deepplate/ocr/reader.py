@@ -11,22 +11,30 @@ from ..utils import get_logger
 
 logger = get_logger("ocr")
 
-_PLATE_RE = re.compile(r"[A-Z]{3}\d{3}", re.IGNORECASE)
+_PLATE_RE = re.compile(r"[A-Z]{3}\d{3}|[A-Z]{3}\d{2}[A-Z]", re.IGNORECASE)
 TARGET_SIZE = (32, 32)
 
 
 def _prepare_char(img: np.ndarray) -> np.ndarray:
-    blur = cv2.GaussianBlur(img, (3, 3), 0)
-    _, binary = cv2.threshold(blur, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-    if binary.mean() > 128:
-        binary = 255 - binary
-    h, w = binary.shape
+    if len(img.shape) == 3:
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    # Usa escala de grises normalizada (sin binarizar) para preservar gradientes
+    # en caracteres reales de baja resolucion donde Otsu destruye trazos finos
+    h, w = img.shape
+    # Padding con color de fondo inferido de los bordes (no con 255 fijo)
+    edges = np.concatenate([img[0, :], img[-1, :], img[:, 0], img[:, -1]])
+    bg = int(np.median(edges))
     side = max(h, w)
-    canvas = np.full((side, side), 255, dtype=np.uint8)
+    canvas = np.full((side, side), bg, dtype=np.uint8)
     y_off = (side - h) // 2
     x_off = (side - w) // 2
-    canvas[y_off: y_off + h, x_off: x_off + w] = binary
-    return cv2.resize(canvas, TARGET_SIZE, interpolation=cv2.INTER_AREA)
+    canvas[y_off: y_off + h, x_off: x_off + w] = img
+    resized = cv2.resize(canvas, TARGET_SIZE, interpolation=cv2.INTER_AREA)
+    # Normalizar para que el caracter siempre sea oscuro sobre fondo claro
+    normed = cv2.normalize(resized, None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
+    if float(normed.mean()) < 128:
+        normed = 255 - normed
+    return normed
 
 
 class PlateOCR:
