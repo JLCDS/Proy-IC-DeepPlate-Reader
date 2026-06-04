@@ -23,11 +23,18 @@ data/raw/
 data/processed/
 !data/samples/
 
-# Model weights
+# Model weights and trained classifiers (generate with: python scripts/train.py)
 models/**/*.pt
 models/**/*.pth
 models/**/*.onnx
 models/**/*.weights
+models/**/*.pkl
+
+# Generated outputs
+outputs/
+
+# Streamlit runtime logs
+streamlit*.txt
 
 # Notebooks checkpoints
 .ipynb_checkpoints/

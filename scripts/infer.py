@@ -1,4 +1,3 @@
-"""CLI entry point for inference on images, video files, or camera."""
 from __future__ import annotations
 import argparse
 from pathlib import Path
